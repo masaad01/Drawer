@@ -6,7 +6,7 @@ body{
     height: 100vh;
 
     display: grid;
-    grid-template: 1fr 1fr / 80vw 20vw;
+    grid-template: 1fr 1fr / 70vw 30vw;
 }
 .view{
     border: solid;

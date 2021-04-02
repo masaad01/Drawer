@@ -4,7 +4,7 @@ let mousePos = {x: 0, y: 0};
 function Line(ctx){
     this.startPos = {x: undefined,y: undefined};
     this.endPos = {x: undefined,y: undefined};
-    this.drawLine = function(){
+    this.draw = function(){
         if( this.startPos.x == undefined ||
             this.startPos.y == undefined ||
             this.endPos.x == undefined ||
@@ -16,30 +16,83 @@ function Line(ctx){
         ctx.stroke();
     }
 }
+function Rectangle(ctx){
+    this.startPos = {x: undefined,y: undefined};
+    this.endPos = {x: undefined,y: undefined};
+
+    const calcDimensions = function(){
+        let x = Math.min(this.startPos.x,this.endPos.x);
+        let y = Math.min(this.startPos.y,this.endPos.y);
+        let w = Math.max(this.startPos.x,this.endPos.x) - x;
+        let h = Math.max(this.startPos.y,this.endPos.y) - y;
+        return {x,y,w,h};
+    }
+    this.draw = function(){
+        if( this.startPos.x == undefined ||
+            this.startPos.y == undefined ||
+            this.endPos.x == undefined ||
+            this.endPos.y == undefined
+            )return;
+            let dim = calcDimensions.bind(this)();
+            ctx.beginPath();
+            ctx.rect(dim.x,dim.y,dim.w,dim.h);
+            ctx.stroke();
+    }
+}
+function Circle(ctx){
+    this.startPos = {x: undefined,y: undefined};
+    this.endPos = {x: undefined,y: undefined};
+
+    const calcDimensions = function(){
+        let x = this.startPos.x;
+        let y = this.startPos.y;
+        let r = Math.sqrt((x - this.endPos.x)**2 + (y - this.endPos.y)**2);
+        return {x,y,r};
+    }
+    this.draw = function(){
+        if( this.startPos.x == undefined ||
+            this.startPos.y == undefined ||
+            this.endPos.x == undefined ||
+            this.endPos.y == undefined
+            )return;
+            let dim = calcDimensions.bind(this)();
+            ctx.beginPath();
+            ctx.arc(dim.x, dim.y, dim.r, 0, 2*Math.PI);
+            ctx.stroke();
+    }
+}
 function Drawer(ctx){
     this.shapes = [];
     this.demoStartP = undefined;
     this.type = undefined;
+    const typeConstructor = {
+        Line: () => new Line(ctx),
+        Rectangle: () => new Rectangle(ctx),
+        Circle: () => new Circle(ctx)
+    }
+    
     this.penDown = function(startP){
-        this.shapes.push(new Line(ctx)); 
+        this.shapes.push(typeConstructor[this.type]()); 
+        
         let l = this.shapes.length;       
         this.shapes[l-1].startPos = startP;
     }
     this.penUp = function(endP){
         let l = this.shapes.length;
         this.shapes[l-1].endPos = endP;
-        this.shapes[l-1].drawLine();
+        this.shapes[l-1].draw();
     }
     this.demo = function(startP,endP = mousePos){
-        let shape = new Line(ctx);
+        let shape = typeConstructor[this.type]();
+        
         shape.startPos = startP;
         shape.endPos = endP;
-        shape.drawLine();
+        shape.draw();   
     }
 }
-
 function DrawerGUI(){
     //private vars
+    let canvas , mainSection,ctx;
     const input = {type: undefined};
     //public vars
     this.app = "";
@@ -57,6 +110,7 @@ function DrawerGUI(){
         input.type = htmlCreator("select",controlsSection,"","inputList")
         htmlCreator("option",input.type,"","","Line");
         htmlCreator("option",input.type,"","","Rectangle");
+        htmlCreator("option",input.type,"","","Circle");
 
         canvas = htmlCreator("canvas" ,mainSection);
         canvas.height = mainSection.offsetHeight ;
@@ -66,7 +120,7 @@ function DrawerGUI(){
     const addEvents = function(){
         let self = this;
 
-        canvas.addEventListener("mousemove",function(event){
+        window.addEventListener("mousemove",function(event){
             mousePos.x = event.x;
             mousePos.y = event.y;
             if(self.app.demoStartP != undefined){
@@ -80,18 +134,23 @@ function DrawerGUI(){
                 self.app.demoStartP = {x:event.x,y:event.y};
             }
         });
-        canvas.addEventListener("mouseup", function(event){
+        window.addEventListener("mouseup", function(event){
             if(self.app.demoStartP != undefined && event.button == 0){
                 self.app.penUp({x:event.x,y:event.y});
                 self.app.demoStartP = undefined;
             }
         });
-        canvas.addEventListener("mouseout", function(event){
-            if(self.app.demoStartP != undefined){
-                self.app.penUp({x:event.x,y:event.y});
-                self.app.demoStartP = undefined;
-            }
-        });
+        window.addEventListener("resize",function(){
+            canvas.height = mainSection.offsetHeight ;
+            canvas.width = mainSection.offsetWidth;
+            self.display(0);
+        })
+        // canvas.addEventListener("mouseout", function(event){
+        //     if(self.app.demoStartP != undefined){
+        //         self.app.penUp({x:event.x,y:event.y});
+        //         self.app.demoStartP = undefined;
+        //     }
+        // });
         input.type.addEventListener("change",function(){self.app.type = this.value;})
     }
     const clearCanvas = function(){
@@ -115,7 +174,7 @@ function DrawerGUI(){
     this.display = function(){
         clearCanvas.bind(this)();
         for(let i=0,l=this.app.shapes.length;i<l;i++)
-            this.app.shapes[i].drawLine();
+            this.app.shapes[i].draw();
 
         
     }
