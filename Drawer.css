@@ -19,12 +19,15 @@ body{
 canvas{
     display: block;
 }
-#scoreSec{
-    font-size: 5vmin;
+#outputSec{
+    /* font-size: 5vmin;
     font-weight: bold;
-    text-align: center;
+    text-align: center; */
     display: flex;
     flex-direction: column;
+}
+#outCode{
+    height: 100%;
 }
 #controlsSec{
     display: grid;

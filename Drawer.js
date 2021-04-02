@@ -23,15 +23,24 @@ function Line(ctx){
     this.startPos = {x: undefined,y: undefined};
     this.endPos = {x: undefined,y: undefined};
     this.draw = function(){
-        if( this.startPos.x == undefined ||
-            this.startPos.y == undefined ||
-            this.endPos.x == undefined ||
-            this.endPos.y == undefined
-            )return;
+        if(this.notComplete())return;
         ctx.beginPath();
         ctx.moveTo(this.startPos.x, this.startPos.y);
         ctx.lineTo(this.endPos.x, this.endPos.y);
         ctx.stroke();
+    }
+    this.getCode = function(){
+        if(this.notComplete())return "";
+        return `//Line:\nctx.beginPath();
+ctx.moveTo(`+this.startPos.x+`, `+this.startPos.y+`);
+ctx.lineTo(`+this.endPos.x+`, `+this.endPos.y+`);
+ctx.stroke();\n`;
+    }
+    this.notComplete = function(){
+        return ( this.startPos.x == undefined ||
+            this.startPos.y == undefined ||
+            this.endPos.x == undefined ||
+            this.endPos.y == undefined);
     }
 }
 function Rectangle(ctx){
@@ -46,15 +55,24 @@ function Rectangle(ctx){
         return {x,y,w,h};
     }
     this.draw = function(){
-        if( this.startPos.x == undefined ||
-            this.startPos.y == undefined ||
-            this.endPos.x == undefined ||
-            this.endPos.y == undefined
-            )return;
+        if(this.notComplete())return;
             let dim = calcDimensions.bind(this)();
             ctx.beginPath();
             ctx.rect(dim.x,dim.y,dim.w,dim.h);
             ctx.stroke();
+    }
+    this.getCode = function(){
+        if(this.notComplete())return "";
+        let dim = calcDimensions.bind(this)();
+        return `//Rectangle:\nctx.beginPath();
+ctx.rect(`+dim.x+`,`+dim.y+`,`+dim.w+`,`+dim.h+`);
+ctx.stroke();\n`;
+    }
+    this.notComplete = function(){
+        return ( this.startPos.x == undefined ||
+            this.startPos.y == undefined ||
+            this.endPos.x == undefined ||
+            this.endPos.y == undefined);
     }
 }
 function Circle(ctx){
@@ -68,15 +86,24 @@ function Circle(ctx){
         return {x,y,r};
     }
     this.draw = function(){
-        if( this.startPos.x == undefined ||
-            this.startPos.y == undefined ||
-            this.endPos.x == undefined ||
-            this.endPos.y == undefined
-            )return;
+        if(this.notComplete())return;
             let dim = calcDimensions.bind(this)();
             ctx.beginPath();
             ctx.arc(dim.x, dim.y, dim.r, 0, 2*Math.PI);
             ctx.stroke();
+    }
+    this.getCode = function(){
+        if(this.notComplete())return "";
+        let dim = calcDimensions.bind(this)();
+        return `//Circle:\nctx.beginPath();
+ctx.arc(`+dim.x+`, `+dim.y+`, `+dim.r+`, 0, 2*Math.PI);
+ctx.stroke();\n`;
+    }
+    this.notComplete = function(){
+        return ( this.startPos.x == undefined ||
+            this.startPos.y == undefined ||
+            this.endPos.x == undefined ||
+            this.endPos.y == undefined);
     }
 }
 function Drawer(ctx){
@@ -129,7 +156,7 @@ function Drawer(ctx){
 }
 function DrawerGUI(){
     //private vars
-    let canvas , mainSection,ctx;
+    let canvas , mainSection, ctx, outputCode;
     const input = {
         type: undefined, undo: undefined , redo: undefined, 
         reset: undefined, grid:{size: undefined, flag: undefined}
@@ -143,8 +170,14 @@ function DrawerGUI(){
 
         let container = htmlCreator("div",body,"container","");
         mainSection = htmlCreator("div",container,"mainSec","view");
-        let scoreSection = htmlCreator("div",container,"scoreSec","view");
+        let outputSection = htmlCreator("div",container,"outputSec","view");
         let controlsSection = htmlCreator("div",container,"controlsSec","view");
+        
+        let codeTitle = htmlCreator("div", outputSection);
+        codeTitle.style.display = "flex";
+        htmlCreator("h2",codeTitle,"","","Your Code: ");
+        htmlCreator("p",codeTitle,"","","Paste inside empty html").style.margin = "auto";
+        outputCode = htmlCreator("textarea",outputSection,"outCode");
 
         htmlCreator("label",controlsSection,"","gridSpan6","click and drag to draw");
 
@@ -195,6 +228,7 @@ function DrawerGUI(){
             if(self.app.demoStartP != undefined && event.button == 0){
                 self.app.penUp({x:mousePos.xGrid,y:mousePos.yGrid});
                 self.app.demoStartP = undefined;
+                self.generateCode();
             }
         });
         window.addEventListener("resize",function(){
@@ -203,8 +237,8 @@ function DrawerGUI(){
             self.display(0);
         });
         input.type.addEventListener("change",function(){self.app.type = this.value;})
-        input.undo.addEventListener("click", function(){self.app.undo();self.display.bind(self)(0);});
-        input.redo.addEventListener("click", function(){self.app.redo();self.display.bind(self)(0);});
+        input.undo.addEventListener("click", function(){self.app.undo();self.display.bind(self)(0);self.generateCode();});
+        input.redo.addEventListener("click", function(){self.app.redo();self.display.bind(self)(0);self.generateCode();});
         input.reset.addEventListener("click", function(){self.reset();});
         input.grid.size.addEventListener("change",function(){gridCell = this.value;self.display.bind(self)(0);})
         input.grid.flag.addEventListener("change",function(){gridFlag = this.checked;self.display.bind(self)(0);})
@@ -241,12 +275,24 @@ function DrawerGUI(){
     }
     this.display = function(){
         clearCanvas.bind(this)();
-        for(let i=0,l=this.app.shapes.length;i<l;i++)
-            this.app.shapes[i].draw();        
+        for(let i=0,l=this.app.shapes.length;i<l;i++){
+            this.app.shapes[i].draw();
+        }
+    }
+    this.generateCode = function(){
+        outputCode.innerHTML = `<body><script>//creat canvas:\nlet canvas = document.body.appendChild(document.createElement("canvas"));
+        canvas.height = window.innerHeight ;
+        canvas.width = window.innerWidth;
+        let ctx = canvas.getContext("2d");\n`;
+        for(let i=0,l=this.app.shapes.length;i<l;i++){
+            outputCode.innerHTML += this.app.shapes[i].getCode();
+        }
+        outputCode.innerHTML += "</script></body>";
     }
     this.reset = function(){
         this.app.reset();
         this.app.type = input.type.value;
+        outputCode.innerHTML = "";
         this.display(0);
     }
 }
