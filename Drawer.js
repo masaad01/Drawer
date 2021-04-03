@@ -189,7 +189,7 @@ function Drawer(ctx){
             let dist = shapes[i].mouseDist();
             if(dist.x < s*2 && dist.y < s*2){
                 let p = new Rectangle(ctx);
-                p.color = "#0F54C2";
+                p.color = "blue";
                 p.startPos.x = shapes[i].startPos.x -s;
                 p.startPos.y = shapes[i].startPos.y -s;
                 p.endPos.x = shapes[i].startPos.x +s
@@ -200,6 +200,15 @@ function Drawer(ctx){
                     c++;
                 }
             }
+        }
+        if(this.selected != undefined){
+            let p = new Rectangle(ctx);
+            p.color = "red";
+            p.startPos.x = this.selected.startPos.x -s;
+            p.startPos.y = this.selected.startPos.y -s;
+            p.endPos.x = this.selected.startPos.x +s
+            p.endPos.y = this.selected.startPos.y +s;
+            p.draw();
         }
         if(c==0)
             this.nearest = undefined;
@@ -223,10 +232,101 @@ function Drawer(ctx){
     }
     this.deleteSelected = function(){
         if(this.selected != undefined){
-            deleted.push(shapes[this.selected.id]);
-            shapes.splice(this.selected.id,1);
+            let pos = shapes.findIndex((v)=>{
+                return v.id == this.selected.id;
+            });
+            deleted.push(shapes[pos]);
+            shapes.splice(pos,1);
         }
         this.selected = undefined;
+    }
+    this.import = function(text){
+        let arr,arrTypes,arrColors;
+        let arrNum = {num:[],Line:[],Rectangle:[],Circle:[]};
+        
+        {  //extract info from text 
+            arr = text.split(/\n/);         //split each line alone
+            arr = arr.filter(function(v){           //remove unwanted lines
+                return v.search(/<|\(\)|canvas/) == -1;
+            });
+            arr = arr.map((v)=>{                    //remove white space from all text
+                return v.replace(/\s/g,"");
+            });
+            arrTypes = arr.filter(function(v){      //extract lines with shapes types
+                return v.search(/\/\//) != -1 && v.search(/:/) != -1;
+            });
+            arrTypes=arrTypes.map((v)=>{            //extract type from each line
+                return v.slice(v.search(/\/\//)+2,v.search(/:/));
+            });
+            arrColors = arr.filter(function(v){     //extract lines with shapes colors
+                return v.search(/#/) != -1;
+            });
+            arrColors = arrColors.map((v)=>{        //extract color from each line
+                return v.substr(v.search(/#/),7);
+            });            
+            arrNum.num = arr.filter(function(v){    //extract lines with shapes dimensions
+                return v.search(/\(\d/) != -1 && v.search(/\)/) != -1;
+            });
+            arrNum.Line = arrNum.num.filter((v)=>{          //extract lines with (Lines) dimensions
+                return v.search(/move|line/) != -1;
+            });
+            arrNum.Line = arrNum.Line.map((v)=>{            //extract (Line) dimensions from each line as array
+                return v.slice(v.search(/\(/)+1,v.search(/\)/)).split(/,/);//2 arrays[2] for each (Line)
+            });
+            arrNum.Rectangle = arrNum.num.filter((v)=>{     //extract lines with (Rectangles) dimensions
+                return v.search(/rect/) != -1;
+            });
+            arrNum.Rectangle = arrNum.Rectangle.map((v)=>{  //extract (Rectangle) dimensions from each line as array
+                return v.slice(v.search(/\(/)+1,v.search(/\)/)).split(/,/);//1 array[4] for each (Rectangle)
+            });
+            arrNum.Circle = arrNum.num.filter((v)=>{        //extract lines with (Circles) dimensions
+                return v.search(/arc/) != -1 && v.search(/0,2\*Math.PI/) != -1;
+            });
+            arrNum.Circle = arrNum.Circle.map((v)=>{        //extract (Circle) dimensions from each line as array
+                return v.slice(v.search(/\(/)+1,v.search(/,0,2\*Math.PI\)/)).split(/,/);//1 array[3] for each (Rectangle)
+            });
+        }
+
+        this.reset();
+        let lineC=0,rectC=0,cirC=0;
+        for(i in arrTypes){
+            this.type = arrTypes[i];
+            if(this.type == undefined)
+                continue;
+            this.color = arrColors[i];
+            if(this.color == undefined)
+                this.color = "#000000";
+            let startp={x:undefined,y:undefined} , endp={x:undefined,y:undefined};
+            switch (this.type) {
+                case "Line":
+                    startp.x = parseFloat(arrNum.Line[lineC][0]);
+                    startp.y = parseFloat(arrNum.Line[lineC][1]);
+                    lineC++;
+                    endp.x = parseFloat(arrNum.Line[lineC][0]);
+                    endp.y = parseFloat(arrNum.Line[lineC][1]);
+                    lineC++;
+                break;
+                case "Rectangle":
+                    startp.x = parseFloat(arrNum.Rectangle[rectC][0]);
+                    startp.y = parseFloat(arrNum.Rectangle[rectC][1]);
+                    endp.x = parseFloat(arrNum.Rectangle[rectC][2]) + startp.x;//endx=w+startx
+                    endp.y = parseFloat(arrNum.Rectangle[rectC][3]) + startp.y;//endy=h+starty
+                    rectC++;
+                break;
+                case "Circle":
+                    startp.x = parseFloat(arrNum.Circle[cirC][0]);
+                    startp.y = parseFloat(arrNum.Circle[cirC][1]);
+                    endp.x = parseFloat(arrNum.Circle[cirC][2]) + startp.x;//endx=r+startx
+                    endp.y = parseFloat(arrNum.Circle[cirC][1]);//endy=starty
+                    cirC++;
+                break;
+                default:
+                console.error("shape: "+this.type+" not found");
+                break;
+            }
+            this.penDown(startp);
+            this.penUp(endp);
+        }
     }
 }
 function DrawerGUI(){
@@ -237,7 +337,8 @@ function DrawerGUI(){
         clearAll: undefined, grid:{size: undefined, flag: undefined},
         color: undefined, 
         selected:{stX: undefined , stY: undefined , edX: undefined , edY: undefined},
-        delete: undefined
+        delete: undefined,
+        import: undefined
     };
     //public vars
     this.app = "";
@@ -297,6 +398,7 @@ function DrawerGUI(){
         input.redo = htmlCreator("button",controlsSection,"","button gridSpan4","Redo");
         input.delete = htmlCreator("button",controlsSection,"","button gridSpan4","Delete");
         input.clearAll = htmlCreator("button",controlsSection,"","button gridSpan6","Clear All");
+        input.import = htmlCreator("button",controlsSection,"","button gridSpan6","Import");
 
         canvas = htmlCreator("canvas" ,mainSection);
         canvas.height = mainSection.offsetHeight ;
@@ -327,7 +429,9 @@ function DrawerGUI(){
                 input.selected.edX.value = self.app.selected.startPos.x;
                 input.selected.edY.value = self.app.selected.startPos.y;
             }
-            else if(event.button == 1){
+        });
+        canvas.addEventListener("dblclick", function(event){
+            if(event.button == 0){
                 self.app.selected = self.app.nearest;
                 console.log(self.app.selected);
                 
@@ -338,7 +442,7 @@ function DrawerGUI(){
                     input.selected.edY.value = self.app.selected.endPos.y;
                 }
             }
-        });
+        })
         window.addEventListener("mouseup", function(event){
             if(self.app.demoStartP != undefined && event.button == 0){
                 self.app.penUp({x:mousePos.xGrid,y:mousePos.yGrid});
@@ -363,6 +467,10 @@ function DrawerGUI(){
                 if(this.value<2.5)this.value=2.5;
                 else if(this.value>100)this.value=100;
                 gridCell = parseFloat(this.value);
+                self.display.bind(self)(0);
+            });
+            input.import.addEventListener("click",function(){
+                self.app.import(outputCode.value);
                 self.display.bind(self)(0);
             });
             input.color.addEventListener("change",function(){
@@ -433,20 +541,20 @@ function DrawerGUI(){
         }
     }
     this.generateCode = function(){
-        outputCode.innerHTML = `<body><script>//creat canvas:\nlet canvas = document.body.appendChild(document.createElement("canvas"));
+        outputCode.value = `<body><script>//creat canvas:\nlet canvas = document.body.appendChild(document.createElement("canvas"));
 canvas.height = window.innerHeight ;
 canvas.width = window.innerWidth;
 let ctx = canvas.getContext("2d");\n`;
         for(let i=0,l=this.app.shapes.length;i<l;i++){
-            outputCode.innerHTML += this.app.shapes[i].getCode();
+            outputCode.value += this.app.shapes[i].getCode();
         }
-        outputCode.innerHTML += "</script></body>";
+        outputCode.value += "</script></body>";
     }
     this.reset = function(){
         this.app.reset();
         this.app.type = input.type.value;
         this.app.color = input.color.value;
-        outputCode.innerHTML = "";
+        outputCode.value = "";
         this.display(0);
     }
 }
