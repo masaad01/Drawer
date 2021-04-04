@@ -2,7 +2,7 @@ body{
     margin: 0;
 }
 *{
-    box-sizing: border-boxs;
+    box-sizing: border-box;
 }
 #container{
     width: 100vw;

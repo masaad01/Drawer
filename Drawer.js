@@ -24,7 +24,15 @@ function Line(ctx){
     this.startPos = {x: undefined,y: undefined};
     this.endPos = {x: undefined,y: undefined};
     this.color = undefined;
+    this.selectedFlag = false;
 
+    this.set = function(stx,sty,edx,edy,color = this.color){
+        this.startPos.x=stx;
+        this.startPos.y=sty;
+        this.endPos.x=edx;
+        this.endPos.y=edy;
+        this.color = color;
+    }
     this.draw = function(){
         if(this.notComplete())return;
         ctx.strokeStyle = this.color;
@@ -32,6 +40,8 @@ function Line(ctx){
         ctx.moveTo(this.startPos.x, this.startPos.y);
         ctx.lineTo(this.endPos.x, this.endPos.y);
         ctx.stroke();
+        if(this.selectedFlag)
+            this.selected();
     }
     this.getCode = function(){
         if(this.notComplete())return "";
@@ -51,7 +61,38 @@ ctx.stroke();\n`;
         let dist = {x:0 ,y:0};
         dist.x = Math.abs(this.startPos.x - mousePos.x);
         dist.y = Math.abs(this.startPos.y - mousePos.y);
-        return dist;
+        let dist2 = {x:0 ,y:0};
+        dist2.x = Math.abs(this.endPos.x - mousePos.x);
+        dist2.y = Math.abs(this.endPos.y - mousePos.y);
+        if(dist.x+dist.y<dist2.x+dist2.y)
+            return dist;
+        return dist2;
+    }
+    this.hover = function(){
+        let s = gridCell/5;
+        if(s<4)s=4;
+        let dist = this.mouseDist();
+        if(dist.x < s*2 && dist.y < s*2){
+            let p = new Rectangle(ctx);
+            p.set(this.startPos.x -s,this.startPos.y -s,this.startPos.x +s,this.startPos.y +s,"blue");
+            p.draw();
+            p = new Rectangle(ctx);
+            p.set(this.endPos.x -s,this.endPos.y -s,this.endPos.x +s,this.endPos.y +s,"blue");
+            p.draw();
+        }
+        if(dist.x < s && dist.y < s)
+            return true;
+        return false;
+    }
+    this.selected = function(){
+        let s = gridCell/5;
+        if(s<4)s=4;
+        let p = new Rectangle(ctx);
+        p.set(this.startPos.x -s,this.startPos.y -s,this.startPos.x +s,this.startPos.y +s,"red");
+        p.draw();
+        p = new Rectangle(ctx);
+        p.set(this.endPos.x -s,this.endPos.y -s,this.endPos.x +s,this.endPos.y +s,"red");
+        p.draw();
     }
 }
 function Rectangle(ctx){
@@ -59,7 +100,15 @@ function Rectangle(ctx){
     this.startPos = {x: undefined,y: undefined};
     this.endPos = {x: undefined,y: undefined};
     this.color = undefined;
+    this.selectedFlag = false;
 
+    this.set = function(stx,sty,edx,edy,color = this.color){
+        this.startPos.x=stx;
+        this.startPos.y=sty;
+        this.endPos.x=edx;
+        this.endPos.y=edy;
+        this.color = color;
+    }
     const calcDimensions = function(){
         let x = Math.min(this.startPos.x,this.endPos.x);
         let y = Math.min(this.startPos.y,this.endPos.y);
@@ -74,6 +123,8 @@ function Rectangle(ctx){
             ctx.beginPath();
             ctx.rect(dim.x,dim.y,dim.w,dim.h);
             ctx.stroke();
+        if(this.selectedFlag)
+            this.selected();
     }
     this.getCode = function(){
         if(this.notComplete())return "";
@@ -93,7 +144,38 @@ ctx.stroke();\n`;
         let dist = {x:0 ,y:0};
         dist.x = Math.abs(this.startPos.x - mousePos.x);
         dist.y = Math.abs(this.startPos.y - mousePos.y);
-        return dist;
+        let dist2 = {x:0 ,y:0};
+        dist2.x = Math.abs(this.endPos.x - mousePos.x);
+        dist2.y = Math.abs(this.endPos.y - mousePos.y);
+        if(dist.x+dist.y<dist2.x+dist2.y)
+            return dist;
+        return dist2;
+    }
+    this.hover = function(){
+        let s = gridCell/5;
+        if(s<4)s=4;
+        let dist = this.mouseDist();
+        if(dist.x < s*2 && dist.y < s*2){
+            let p = new Rectangle(ctx);
+            p.set(this.startPos.x -s,this.startPos.y -s,this.startPos.x +s,this.startPos.y +s,"blue");
+            p.draw();
+            p = new Rectangle(ctx);
+            p.set(this.endPos.x -s,this.endPos.y -s,this.endPos.x +s,this.endPos.y +s,"blue");
+            p.draw();
+        }
+        if(dist.x < s && dist.y < s)
+            return true;
+        return false;
+    }
+    this.selected = function(){
+        let s = gridCell/5;
+        if(s<4)s=4;
+        let p = new Rectangle(ctx);
+        p.set(this.startPos.x -s,this.startPos.y -s,this.startPos.x +s,this.startPos.y +s,"red");
+        p.draw();
+        p = new Rectangle(ctx);
+        p.set(this.endPos.x -s,this.endPos.y -s,this.endPos.x +s,this.endPos.y +s,"red");
+        p.draw();
     }
 }
 function Circle(ctx){
@@ -101,7 +183,15 @@ function Circle(ctx){
     this.startPos = {x: undefined,y: undefined};
     this.endPos = {x: undefined,y: undefined};
     this.color = undefined;
+    this.selectedFlag = false;
 
+    this.set = function(stx,sty,edx,edy,color = this.color){
+        this.startPos.x=stx;
+        this.startPos.y=sty;
+        this.endPos.x=edx;
+        this.endPos.y=edy;
+        this.color = color;
+    }
     const calcDimensions = function(){
         let x = this.startPos.x;
         let y = this.startPos.y;
@@ -115,6 +205,8 @@ function Circle(ctx){
             ctx.beginPath();
             ctx.arc(dim.x, dim.y, dim.r, 0, 2*Math.PI);
             ctx.stroke();
+        if(this.selectedFlag)
+            this.selected();
     }
     this.getCode = function(){
         if(this.notComplete())return "";
@@ -134,7 +226,38 @@ ctx.stroke();\n`;
         let dist = {x:0 ,y:0};
         dist.x = Math.abs(this.startPos.x - mousePos.x);
         dist.y = Math.abs(this.startPos.y - mousePos.y);
-        return dist;
+        let dist2 = {x:0 ,y:0};
+        dist2.x = Math.abs(this.endPos.x - mousePos.x);
+        dist2.y = Math.abs(this.endPos.y - mousePos.y);
+        if(dist.x+dist.y<dist2.x+dist2.y)
+            return dist;
+        return dist2;
+    }
+    this.hover = function(){
+        let s = gridCell/5;
+        if(s<4)s=4;
+        let dist = this.mouseDist();
+        if(dist.x < s*2 && dist.y < s*2){
+            let p = new Rectangle(ctx);
+            p.set(this.startPos.x -s,this.startPos.y -s,this.startPos.x +s,this.startPos.y +s,"blue");
+            p.draw();
+            p = new Rectangle(ctx);
+            p.set(this.endPos.x -s,this.endPos.y -s,this.endPos.x +s,this.endPos.y +s,"blue");
+            p.draw();
+        }
+        if(dist.x < s && dist.y < s)
+            return true;
+        return false;
+    }
+    this.selected = function(){
+        let s = gridCell/5;
+        if(s<4)s=4;
+        let p = new Rectangle(ctx);
+        p.set(this.startPos.x -s,this.startPos.y -s,this.startPos.x +s,this.startPos.y +s,"red");
+        p.draw();
+        p = new Rectangle(ctx);
+        p.set(this.endPos.x -s,this.endPos.y -s,this.endPos.x +s,this.endPos.y +s,"red");
+        p.draw();
     }
 }
 function Drawer(ctx){
@@ -167,6 +290,10 @@ function Drawer(ctx){
     }
     this.penUp = function(endP){
         let l = shapes.length;
+        if(this.selected != undefined)
+            this.selected.selectedFlag = false;
+        this.selected = shapes[l-1];
+        shapes[l-1].selectedFlag = true
         shapes[l-1].endPos = endP;
         shapes[l-1].draw();
         if(shapes[l-1].endPos.x == shapes[l-1].startPos.x &&
@@ -176,6 +303,10 @@ function Drawer(ctx){
     this.demo = function(startP,endP = mousePos){
         let shape = typeConstructor[this.type]();
         
+        if(this.selected != undefined)
+            this.selected.selectedFlag = false;
+        this.selected = shape;
+        shape.selectedFlag = true;
         shape.color = this.color;
         shape.startPos = startP;
         shape.endPos = endP;
@@ -185,30 +316,11 @@ function Drawer(ctx){
         let c=0;
         let s = gridCell/5;
         if(s<4)s=4;
-        for(i in shapes){
-            let dist = shapes[i].mouseDist();
-            if(dist.x < s*2 && dist.y < s*2){
-                let p = new Rectangle(ctx);
-                p.color = "blue";
-                p.startPos.x = shapes[i].startPos.x -s;
-                p.startPos.y = shapes[i].startPos.y -s;
-                p.endPos.x = shapes[i].startPos.x +s
-                p.endPos.y = shapes[i].startPos.y +s;
-                p.draw();
-                if(dist.x < s && dist.y < s){
-                    this.nearest = shapes[i];
-                    c++;
-                }
+        for(let i in shapes){
+            if(shapes[i].hover()){
+                this.nearest = shapes[i];
+                c++;
             }
-        }
-        if(this.selected != undefined){
-            let p = new Rectangle(ctx);
-            p.color = "red";
-            p.startPos.x = this.selected.startPos.x -s;
-            p.startPos.y = this.selected.startPos.y -s;
-            p.endPos.x = this.selected.startPos.x +s
-            p.endPos.y = this.selected.startPos.y +s;
-            p.draw();
         }
         if(c==0)
             this.nearest = undefined;
@@ -289,7 +401,7 @@ function Drawer(ctx){
 
         this.reset();
         let lineC=0,rectC=0,cirC=0;
-        for(i in arrTypes){
+        for(let i in arrTypes){
             this.type = arrTypes[i];
             if(this.type == undefined)
                 continue;
@@ -415,32 +527,21 @@ function DrawerGUI(){
             self.app.hover();
             if(self.app.demoStartP != undefined){
                 self.app.demo(self.app.demoStartP,{x:mousePos.xGrid,y:mousePos.yGrid});
-                input.selected.edX.value = mousePos.xGrid;
-                input.selected.edY.value = mousePos.yGrid;
             }
         });
         canvas.addEventListener("mousedown", function(event){
             if(event.button == 0){   //left mouse button
-                self.app.selected = self.app.penDown({x:mousePos.xGrid,y:mousePos.yGrid});
+                self.app.penDown({x:mousePos.xGrid,y:mousePos.yGrid});
                 self.app.demoStartP = {x:mousePos.xGrid,y:mousePos.yGrid};
-                
-                input.selected.stX.value = self.app.selected.startPos.x;
-                input.selected.stY.value = self.app.selected.startPos.y;
-                input.selected.edX.value = self.app.selected.startPos.x;
-                input.selected.edY.value = self.app.selected.startPos.y;
+                self.display(0);
             }
         });
         canvas.addEventListener("dblclick", function(event){
             if(event.button == 0){
+                if(self.app.selected != undefined)
+                    self.app.selected.selectedFlag = false;
                 self.app.selected = self.app.nearest;
-                console.log(self.app.selected);
-                
-                if(self.app.selected != undefined){
-                    input.selected.stX.value = self.app.selected.startPos.x;
-                    input.selected.stY.value = self.app.selected.startPos.y;
-                    input.selected.edX.value = self.app.selected.endPos.x;
-                    input.selected.edY.value = self.app.selected.endPos.y;
-                }
+                self.display(0);
             }
         })
         window.addEventListener("mouseup", function(event){
@@ -538,6 +639,13 @@ function DrawerGUI(){
         clearCanvas.bind(this)();
         for(let i=0,l=this.app.shapes.length;i<l;i++){
             this.app.shapes[i].draw();
+        }
+        if(this.app.selected != undefined){
+            this.app.selected.selectedFlag = true;
+            input.selected.stX.value = this.app.selected.startPos.x;
+            input.selected.stY.value = this.app.selected.startPos.y;
+            input.selected.edX.value = this.app.selected.endPos.x;
+            input.selected.edY.value = this.app.selected.endPos.y;
         }
     }
     this.generateCode = function(){
