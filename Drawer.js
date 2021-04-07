@@ -396,15 +396,16 @@ function DrawerGUI(){
     }
     this.display = function(){
         clearCanvas.bind(this)();
-        for(let i=0,l=this.app.shapes.length;i<l;i++){
-            this.app.shapes[i].draw();
-        }
         if(this.app.selected != undefined){
             this.app.selected.selectedFlag = true;
             input.selected.stX.value = this.app.selected.startPos.x;
             input.selected.stY.value = this.app.selected.startPos.y;
             input.selected.edX.value = this.app.selected.endPos.x;
             input.selected.edY.value = this.app.selected.endPos.y;
+            //input.type = this.app.selected.constructor;
+        }
+        for(let i=0,l=this.app.shapes.length;i<l;i++){
+            this.app.shapes[i].draw();
         }
     }
     this.generateCode = function(){

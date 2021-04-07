@@ -5,10 +5,11 @@ function Shape(ctx){
     this.id = undefined;
     this.startPos = {x: undefined,y: undefined};
     this.endPos = {x: undefined,y: undefined};
+    this.middlePos = {x: undefined,y: undefined};
     this.color = undefined;
     this.selectedFlag = false;
     Object.defineProperties(this,{
-        ctx:{value:ctx}
+        ctx:{value:ctx},
     });
 }
 
@@ -22,6 +23,7 @@ Shape.prototype.set = function(stx,sty,edx,edy,color = this.color){
 Shape.prototype.draw = function(){
     if(this.notComplete())return;
     this.ctx.strokeStyle = this.color;
+    this.calcDimensions();
     this.drawShape();
     if(this.selectedFlag)
         this.selected();
@@ -39,29 +41,42 @@ Shape.prototype.notComplete = function(){
         this.endPos.y == undefined);
 }
 Shape.prototype.mouseDist = function(){
-    let dist = {x:0 ,y:0};
-    dist.x = Math.abs(this.startPos.x - mousePos.x);
-    dist.y = Math.abs(this.startPos.y - mousePos.y);
-    let dist2 = {x:0 ,y:0};
-    dist2.x = Math.abs(this.endPos.x - mousePos.x);
-    dist2.y = Math.abs(this.endPos.y - mousePos.y);
-    if(dist.x+dist.y<dist2.x+dist2.y)
-        return dist;
-    return dist2;
+    let dist = [{x:0 ,y:0},{x:0 ,y:0},{x:0 ,y:0}];
+    dist[0].x = Math.abs(this.startPos.x - mousePos.x);
+    dist[0].y = Math.abs(this.startPos.y - mousePos.y);
+    dist[1].x = Math.abs(this.endPos.x - mousePos.x);
+    dist[1].y = Math.abs(this.endPos.y - mousePos.y);
+    dist[2].x = Math.abs(this.middlePos.x - mousePos.x);
+    dist[2].y = Math.abs(this.middlePos.y - mousePos.y);
+
+    dist.sort((a,b) => (a.x + a.y) - (b.x + b.y));
+    return Math.sqrt(dist[0].x**2 + dist[0].y**2);
 }
-Shape.prototype.hover = function(){
+Shape.prototype.hover = function(){ //needs some work
     let s = gridCell/5;
     if(s<4)s=4;
     let dist = this.mouseDist();
-    if(dist.x < s*2 && dist.y < s*2){
+    if(dist < s){
         let p = new Rectangle(this.ctx);
+        p.set(this.startPos.x -s,this.startPos.y -s,this.endPos.x+s,this.endPos.y+s,"blue")
+        p.draw();
+        p = new Rectangle(this.ctx);
         p.set(this.startPos.x -s,this.startPos.y -s,this.startPos.x +s,this.startPos.y +s,"blue");
         p.draw();
         p = new Rectangle(this.ctx);
         p.set(this.endPos.x -s,this.endPos.y -s,this.endPos.x +s,this.endPos.y +s,"blue");
         p.draw();
+        p = new Rectangle(this.ctx);
+        p.set(this.startPos.x -s,this.endPos.y -s,this.startPos.x +s,this.endPos.y +s,"blue");
+        p.draw();
+        p = new Rectangle(this.ctx);
+        p.set(this.endPos.x -s,this.startPos.y -s,this.endPos.x +s,this.startPos.y +s,"blue");
+        p.draw();
+        p = new Rectangle(this.ctx);
+        p.set(this.middlePos.x -s,this.middlePos.y -s,this.middlePos.x +s,this.middlePos.y +s,"blue");
+        p.draw();
     }
-    if(dist.x < s && dist.y < s)
+    if(dist < s)
         return true;
     return false;
 }
@@ -69,11 +84,27 @@ Shape.prototype.selected = function(){
     let s = gridCell/5;
     if(s<4)s=4;
     let p = new Rectangle(this.ctx);
+    p.set(this.startPos.x -s,this.startPos.y -s,this.endPos.x+s,this.endPos.y+s,"red")
+    p.draw();
+    p = new Rectangle(this.ctx);
     p.set(this.startPos.x -s,this.startPos.y -s,this.startPos.x +s,this.startPos.y +s,"red");
     p.draw();
     p = new Rectangle(this.ctx);
     p.set(this.endPos.x -s,this.endPos.y -s,this.endPos.x +s,this.endPos.y +s,"red");
     p.draw();
+    p = new Rectangle(this.ctx);
+    p.set(this.startPos.x -s,this.endPos.y -s,this.startPos.x +s,this.endPos.y +s,"red");
+    p.draw();
+    p = new Rectangle(this.ctx);
+    p.set(this.endPos.x -s,this.startPos.y -s,this.endPos.x +s,this.startPos.y +s,"red");
+    p.draw();
+    p = new Rectangle(this.ctx);
+    p.set(this.middlePos.x -s,this.middlePos.y -s,this.middlePos.x +s,this.middlePos.y +s,"red");
+    p.draw();
+}
+Shape.prototype.calcDimensions = function(){
+    this.middlePos.x = (this.startPos.x+this.endPos.x)/2;
+    this.middlePos.y = (this.startPos.y+this.endPos.y)/2;
 }
 
 function Line(ctx){
@@ -81,7 +112,7 @@ function Line(ctx){
 }
 Line.prototype = Object.create(Shape.prototype,{
     drawShape:{
-        value: function(){
+        value(){
                 this.ctx.beginPath();
                 this.ctx.moveTo(this.startPos.x, this.startPos.y);
                 this.ctx.lineTo(this.endPos.x, this.endPos.y);
@@ -89,7 +120,7 @@ Line.prototype = Object.create(Shape.prototype,{
         }
     },
     getCode:{
-        value: function(){
+        value(){
             if(this.notComplete())return "";
             return '//Line:\nctx.strokeStyle = "'+this.color+'";\n'+
                 'ctx.beginPath();\n'+
@@ -98,18 +129,31 @@ Line.prototype = Object.create(Shape.prototype,{
                 'ctx.stroke();\n';
         }
     },
+    mouseDist:{
+        value(){
+            let deltax = this.startPos.x - this.endPos.x;
+            let deltay = this.startPos.y - this.endPos.y;
+            //inside the surrounding rectangle
+            let dist1x = Math.abs(mousePos.x-this.middlePos.x ) - Math.abs(deltax)/2;
+            let dist1y = Math.abs(mousePos.y-this.middlePos.y ) - Math.abs(deltay)/2;
+            let dist1 = Math.max(dist1x,dist1y);
+            //on the line itself (satisfy the line equation)
+            let dist2 = Math.abs(deltax * (this.startPos.y - mousePos.y) - 
+                deltay * (this.startPos.x - mousePos.x)) /Math.sqrt(deltax**2+deltay**2);
+            return Math.max(dist2,dist1);
+            }
+    },
     constructor:{
         value: Line
     }
 });
-//Line.prototype.constructor = Line;
 
 function Rectangle(ctx){
     Shape.call(this,ctx);
 }
 Rectangle.prototype = Object.create(Shape.prototype,{
     drawShape:{
-        value: function(){
+        value(){
             let dim = this.calcDimensions();
             this.ctx.strokeStyle = this.color;
             this.ctx.beginPath();
@@ -118,7 +162,7 @@ Rectangle.prototype = Object.create(Shape.prototype,{
         }
     },
     getCode:{
-        value: function(){
+        value(){
             if(this.notComplete())return "";
             let dim = this.calcDimensions();
             return '//Rectangle:\nctx.strokeStyle = "'+this.color+'";\n'+
@@ -128,12 +172,21 @@ Rectangle.prototype = Object.create(Shape.prototype,{
         }
     },
     calcDimensions:{
-        value: function(){
+        value(){
+            Shape.prototype.calcDimensions.call(this);
             let x = Math.min(this.startPos.x,this.endPos.x);
             let y = Math.min(this.startPos.y,this.endPos.y);
             let w = Math.max(this.startPos.x,this.endPos.x) - x;
             let h = Math.max(this.startPos.y,this.endPos.y) - y;
             return {x,y,w,h};
+        }
+    },
+    mouseDist:{
+        value(){
+            let distx=0,disty=0;
+            distx = Math.abs(mousePos.x-this.middlePos.x ) - Math.abs(this.startPos.x-this.endPos.x)/2;
+            disty = Math.abs(mousePos.y-this.middlePos.y ) - Math.abs(this.startPos.y-this.endPos.y)/2;
+            return Math.abs(Math.max(distx,disty));
         }
     },
     constructor:{
@@ -146,7 +199,7 @@ function Circle(ctx){
 }
 Circle.prototype = Object.create(Shape.prototype,{
     drawShape:{
-        value: function(){
+        value(){
             let dim = this.calcDimensions();
             this.ctx.beginPath();
             this.ctx.arc(dim.x, dim.y, dim.r, 0, 2*Math.PI);
@@ -154,7 +207,7 @@ Circle.prototype = Object.create(Shape.prototype,{
         }
     },
     getCode:{
-        value: function(){
+        value(){
             if(this.notComplete())return "";
             let dim = this.calcDimensions();
             return '//Circle:\nctx.strokeStyle = "'+this.color+'";\n'+
@@ -164,11 +217,19 @@ Circle.prototype = Object.create(Shape.prototype,{
         }
     },
     calcDimensions:{
-        value: function(){
-            let x = this.startPos.x;
-            let y = this.startPos.y;
+        value(){
+            Shape.prototype.calcDimensions.call(this);
+            let x = this.middlePos.x;
+            let y = this.middlePos.y;
             let r = Math.sqrt((x - this.endPos.x)**2 + (y - this.endPos.y)**2);
             return {x,y,r};
+        }
+    },
+    mouseDist:{
+        value(){
+            let dx = this.middlePos.x - mousePos.x;
+            let dy = this.middlePos.y - mousePos.y;
+            return Math.abs(Math.sqrt(dx**2 + dy**2) - this.calcDimensions().r);
         }
     },
     constructor:{
